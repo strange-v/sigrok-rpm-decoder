@@ -57,6 +57,8 @@ class Decoder(srd.Decoder):
     def reset(self):
         self.samplerate = None
         self.last_samplenum = None
+        self.edge_num = 0
+        self.last_t = 0
 
     def metadata(self, key, value):
         if key == srd.SRD_CONF_SAMPLERATE:
@@ -82,14 +84,24 @@ class Decoder(srd.Decoder):
             if not self.last_samplenum:
                 self.wait_for_edge()
                 self.last_samplenum = self.samplenum
+                continue
 
-            for _ in range(self.num_pulses):
-                self.wait_for_edge()
-
+            self.wait_for_edge()
+            self.edge_num += 1
+                
             samples = self.samplenum - self.last_samplenum
             t = samples / self.samplerate
-            
-            if t < 0.5:
-                self.put(self.last_samplenum, self.samplenum, self.out_ann, [0, [get_rpm(t)]])
+            self.last_t += t
 
-            self.last_samplenum = self.samplenum
+            if t >= 0.5:
+                self.edge_num = 0
+                self.last_t = 0
+                self.last_samplenum = self.samplenum
+                continue
+
+            if self.edge_num == self.num_pulses:
+                self.edge_num = 0
+                self.last_t = 0
+            
+                self.put(self.last_samplenum, self.samplenum, self.out_ann, [0, [get_rpm(t)]])
+                self.last_samplenum = self.samplenum
