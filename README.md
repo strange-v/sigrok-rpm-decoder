@@ -1,4 +1,4 @@
-# RPM Ddecoder
+# RPM Decoder
 RPM (revolutions per minute) decoder for sigrok (PulseView)
 
 ## Example
